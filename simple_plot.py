@@ -38,6 +38,22 @@ class WeekdayDateFormatter(matplotlib.ticker.Formatter):
         return self.dates[ind].strftime(self.fmt)
 
 
+class DateParser(object):
+    def __init__(self):
+        self.dates_only = False
+
+    def parse(self, d):
+        if self.dates_only:
+            return datetime.datetime.strptime(d, '%Y-%m-%d')
+        else:
+            try:
+                return datetime.datetime.strptime(d, '%Y-%m-%d %H:%M:%S')
+            except ValueError as e:
+                logger.warning("Error parsing date '%s', trying again with date only (no time)", d)
+                self.dates_only = True
+                return self.parse(d)
+
+
 def generate_graph(graph: dict):
     logger.info("X:{}, Y:{}".format(graph['xaxis'], graph['yaxis']))
 
@@ -48,17 +64,19 @@ def generate_graph(graph: dict):
     fig, ax = plt.subplots(figsize=(5, 5))
 
     try:
+        dp = DateParser()
         xaxis = [
-            matplotlib.dates.date2num(
-                datetime.datetime.strptime(d, "%Y-%m-%d %H:%M:%S")
-            )
+            matplotlib.dates.date2num(dp.parse(d))
             for d in graph['xaxis']
         ]
 
         logger.debug("X-Axis: (%d points) %s", len(xaxis), str(xaxis))
 
-        formatter = WeekdayDateFormatter(xaxis,
-                                         fmt='%-m/%-d %H:%M')
+        x_axis_fmt = '%-m/%-d %H:%M'
+        if dp.dates_only:
+            x_axis_fmt = '%-m/%-d'
+
+        formatter = WeekdayDateFormatter(xaxis, fmt=x_axis_fmt)
         locator = matplotlib.ticker.IndexLocator(
             base=len(xaxis) // 5 - 1,
             offset=0
