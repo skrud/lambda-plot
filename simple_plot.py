@@ -74,7 +74,7 @@ def generate_graph(graph: dict):
 
         x_axis_fmt = '%-m/%-d %H:%M'
         if dp.dates_only:
-            x_axis_fmt = '%-m/%-d'
+            x_axis_fmt = '%-m/%-d/%Y'
 
         formatter = WeekdayDateFormatter(xaxis, fmt=x_axis_fmt)
         locator = matplotlib.ticker.IndexLocator(
@@ -127,8 +127,10 @@ def lambda_handler(data: dict, event):
 
     s3 = boto3.resource('s3')
     bucket = s3.Bucket(DESTINATION_BUCKET)
-    key_name = re.sub(r"\s+", '-', "{}-{}.png".format(
-                        data['symbol'], data['date']))
+    key_name = re.sub(r"\s+", '-', "{}-{}-{}.png".format(
+                        data['symbol'],
+                        data['interval'],
+                        data['date']))
 
     objs = list(bucket.objects.filter(Prefix=key_name))
     if objs and objs[0].key == key_name:
